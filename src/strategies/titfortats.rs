@@ -18,6 +18,20 @@ impl Strategy for TitForTat {
     }
 }
 
+/// Will start defecting. If the opposing player defects it will also start defecting.
+/// untill the opossing player cooperates again.
+pub struct SuspicousTitForTat;
+impl Strategy for SuspicousTitForTat {
+    fn next_move(&self, other: &Vec<Action>, _: &Vec<Action>) -> Action {
+        match other.iter().last() {
+            Some(s) => *s,
+            _ => Action::Defect,
+        }
+    }
+    fn name(&self) -> String {
+        "SusTitForTat".to_string()
+    }
+}
 /// Will start cooperating. If the opposing player defects N in a row it
 /// will also start defecting. If the the opossing player cooperates it will also cooperate again.
 pub struct TitForTatN(pub usize);

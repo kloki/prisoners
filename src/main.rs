@@ -29,7 +29,7 @@ impl Runner {
             players,
             runs: Vec::new(),
             run_length: 200,
-            iterations: 5,
+            iterations: 1,
             noise,
         }
     }
@@ -104,7 +104,7 @@ fn generate_chart(
     scores: Vec<(String, usize)>,
     output_file: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let root = BitMapBackend::new(&output_file, (1280, 960)).into_drawing_area();
+    let root = BitMapBackend::new(&output_file, (1280, 480)).into_drawing_area();
 
     root.fill(&WHITE)?;
 
@@ -113,7 +113,10 @@ fn generate_chart(
         .y_label_area_size(80)
         .margin(5)
         .caption("Prisoners", ("sans-serif", 50.0))
-        .build_cartesian_2d(0..scores[0].1, (0..(scores.len() - 1)).into_segmented())?;
+        .build_cartesian_2d(
+            0..scores[scores.len() - 1].1,
+            (0..(scores.len() - 1)).into_segmented(),
+        )?;
 
     chart
         .configure_mesh()
@@ -132,7 +135,7 @@ fn generate_chart(
     chart.draw_series(
         Histogram::horizontal(&chart)
             .style(BLUE.mix(0.5).filled())
-            .data(scores.iter().rev().enumerate().map(|(i, x)| (i, x.1))),
+            .data(scores.iter().enumerate().map(|(i, x)| (i, x.1))),
     )?;
 
     // To avoid the IO failure being ignored silently, we manually call the present function
@@ -143,14 +146,15 @@ fn generate_chart(
 fn main() {
     let args = Args::parse();
     let players: Vec<Box<dyn Strategy>> = vec![
-        Box::new(Naive),
         Box::new(Exploiter),
+        Box::new(Naive),
+        Box::new(SuspicousTitForTat),
         Box::new(Random),
         Box::new(Grudger),
+        Box::new(FlipFlop),
         Box::new(Reluctant),
         Box::new(Detective),
         Box::new(TitForTat),
-        Box::new(FlipFlop),
         Box::new(TitForTatN(2)),
         Box::new(TitForTatN(3)),
     ];
@@ -164,6 +168,5 @@ fn main() {
     }
     let mut scores = runner.scores();
     scores.sort_by_key(|x| x.1);
-    scores.reverse();
     generate_chart(scores, args.output_file).unwrap();
 }
