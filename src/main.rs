@@ -21,22 +21,27 @@ struct Args {
     verbose: bool,
     #[arg(short, long, default_value = "./output.png")]
     output_file: String,
+    /// Value between 0 and 1. Flips action to create noise
+    #[arg(short, long, default_value_t = 0.0)]
+    noise: f64,
 }
 struct Runner {
     players: Vec<(Box<dyn Strategy>, usize)>,
     runs: Vec<(String, String, usize, usize)>,
     run_length: usize,
     iterations: usize,
+    noise: f64,
 }
 
 impl Runner {
-    fn new(players: Vec<Box<dyn Strategy>>) -> Self {
+    fn new(players: Vec<Box<dyn Strategy>>, noise: f64) -> Self {
         let players = players.into_iter().map(|x| (x, 0)).collect();
         Runner {
             players,
             runs: Vec::new(),
             run_length: 200,
             iterations: 5,
+            noise,
         }
     }
 
@@ -47,12 +52,14 @@ impl Runner {
         let mut right_score = 0;
 
         for _ in 0..self.run_length {
+            // PLayers decide their actions
             let left_action = self.players[left]
                 .0
                 .next_move(&right_actions, &left_actions);
             let right_action = self.players[right]
                 .0
                 .next_move(&left_actions, &right_actions);
+            // decide results
             match (&left_action, &right_action) {
                 (Action::Cooperate, Action::Cooperate) => {
                     left_score += 3;
@@ -69,8 +76,9 @@ impl Runner {
                     right_score += 1;
                 }
             }
-            right_actions.push(right_action);
-            left_actions.push(left_action);
+            // Introduce noise in communication
+            right_actions.push(right_action.noise(self.noise));
+            left_actions.push(left_action.noise(self.noise));
         }
 
         self.runs.push((
@@ -103,7 +111,46 @@ impl Runner {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn generate_chart(
+    scores: Vec<(String, usize)>,
+    output_file: String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let root = BitMapBackend::new(&output_file, (640, 480)).into_drawing_area();
+
+    root.fill(&WHITE)?;
+
+    let mut chart = ChartBuilder::on(&root)
+        .x_label_area_size(35)
+        .y_label_area_size(80)
+        .margin(5)
+        .caption("Prisoners", ("sans-serif", 50.0))
+        .build_cartesian_2d(0..scores[0].1, (0..(scores.len() - 1)).into_segmented())?;
+
+    chart
+        .configure_mesh()
+        .disable_x_mesh()
+        .bold_line_style(WHITE.mix(0.3))
+        .y_desc("Players")
+        .x_desc("Scores")
+        .axis_desc_style(("sans-serif", 15))
+        .y_label_formatter(&|y| match y {
+            SegmentValue::CenterOf(v) => scores[*v as usize].0.clone(),
+            _ => "UNK".to_string(),
+        })
+        .draw()?;
+
+    chart.draw_series(
+        Histogram::horizontal(&chart)
+            .style(BLUE.mix(0.5).filled())
+            .data(scores.iter().rev().enumerate().map(|(i, x)| (i, x.1))),
+    )?;
+
+    // To avoid the IO failure being ignored silently, we manually call the present function
+    root.present().expect("Unable to write result to file, please make sure 'plotters-doc-data' dir exists under current dir");
+    println!("\nResult has been saved to {}", output_file);
+    Ok(())
+}
+fn main() {
     let args = Args::parse();
     let players: Vec<Box<dyn Strategy>> = vec![
         Box::new(Naive),
@@ -117,7 +164,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Box::new(TitForTatN(3)),
     ];
 
-    let mut runner = Runner::new(players);
+    let mut runner = Runner::new(players, args.noise);
     runner.run();
     if args.verbose {
         for (lname, rname, lscore, rscore) in &runner.runs {
@@ -127,39 +174,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut scores = runner.scores();
     scores.sort_by_key(|x| x.1);
     scores.reverse();
-
-    println!("\n\nFinal scores:");
-    for score in &scores {
-        println!("{} - {}", score.0, score.1);
-    }
-    let root = BitMapBackend::new(&args.output_file, (640, 480)).into_drawing_area();
-
-    root.fill(&WHITE)?;
-
-    let mut chart = ChartBuilder::on(&root)
-        .x_label_area_size(35)
-        .y_label_area_size(40)
-        .margin(5)
-        .caption("Prisoners", ("sans-serif", 50.0))
-        .build_cartesian_2d(0..scores[0].1, (0..(scores.len() - 1)).into_segmented())?;
-
-    chart
-        .configure_mesh()
-        .disable_x_mesh()
-        .bold_line_style(WHITE.mix(0.3))
-        .y_desc("Plaers")
-        .x_desc("Scores")
-        .axis_desc_style(("sans-serif", 15))
-        .draw()?;
-
-    chart.draw_series(
-        Histogram::horizontal(&chart)
-            .style(BLUE.mix(0.5).filled())
-            .data(scores.iter().rev().enumerate().map(|(i, x)| (i, x.1))),
-    )?;
-
-    // To avoid the IO failure being ignored silently, we manually call the present function
-    root.present().expect("Unable to write result to file, please make sure 'plotters-doc-data' dir exists under current dir");
-    println!("\nResult has been saved to {}", args.output_file);
-    Ok(())
+    generate_chart(scores, args.output_file).unwrap();
 }

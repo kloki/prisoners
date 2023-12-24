@@ -6,6 +6,7 @@ pub use grudger::{
     Grudger,
     Reluctant,
 };
+use rand::Rng;
 pub use random::{
     FlipFlop,
     Random,
@@ -30,6 +31,16 @@ impl Action {
         match self {
             Action::Cooperate => Action::Defect,
             Action::Defect => Action::Cooperate,
+        }
+    }
+
+    pub fn noise(&self, noise_ratio: f64) -> Action {
+        let mut rng = rand::thread_rng();
+        let roll = rng.gen_range(0f64..1f64);
+        if roll < noise_ratio {
+            self.flip()
+        } else {
+            *self
         }
     }
 }
