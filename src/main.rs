@@ -104,7 +104,7 @@ fn generate_chart(
     scores: Vec<(String, usize)>,
     output_file: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let root = BitMapBackend::new(&output_file, (640, 480)).into_drawing_area();
+    let root = BitMapBackend::new(&output_file, (1280, 960)).into_drawing_area();
 
     root.fill(&WHITE)?;
 
@@ -122,6 +122,7 @@ fn generate_chart(
         .y_desc("Players")
         .x_desc("Scores")
         .axis_desc_style(("sans-serif", 15))
+        .y_labels(scores.len())
         .y_label_formatter(&|y| match y {
             SegmentValue::CenterOf(v) => scores[*v as usize].0.clone(),
             _ => "UNK".to_string(),
