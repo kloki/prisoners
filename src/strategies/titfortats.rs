@@ -1,9 +1,11 @@
+use rand::Rng;
+
 use crate::{
     Action,
     Strategy,
 };
 /// Will start cooperating. If the opposing player defects it will also start defecting.
-/// untill the opossing player cooperates again.
+/// Untill the opossing player cooperates again.
 pub struct TitForTat;
 
 impl Strategy for TitForTat {
@@ -19,7 +21,7 @@ impl Strategy for TitForTat {
 }
 
 /// Will start defecting. If the opposing player defects it will also start defecting.
-/// untill the opossing player cooperates again.
+/// Untill the opossing player cooperates again.
 pub struct SuspicousTitForTat;
 impl Strategy for SuspicousTitForTat {
     fn next_move(&self, other: &Vec<Action>, _: &Vec<Action>) -> Action {
@@ -29,7 +31,52 @@ impl Strategy for SuspicousTitForTat {
         }
     }
     fn name(&self) -> String {
-        "SusTitForTat".to_string()
+        "SuspicousTFT".to_string()
+    }
+}
+
+/// Will start cooperating. If the opposing player defects it will also start defecting 90% of the
+/// time. Untill the opossing player cooperates again.
+pub struct GenerousTitForTat;
+impl Strategy for GenerousTitForTat {
+    fn next_move(&self, other: &Vec<Action>, _: &Vec<Action>) -> Action {
+        let mut rng = rand::thread_rng();
+        match other.iter().last() {
+            Some(Action::Defect) => {
+                if rng.gen_range(0.0..1.0) < 0.1 {
+                    Action::Cooperate
+                } else {
+                    Action::Defect
+                }
+            }
+            _ => Action::Cooperate,
+        }
+    }
+    fn name(&self) -> String {
+        "GenerousTFT".to_string()
+    }
+}
+
+/// Will start cooperating. If the opposing player defects it will also start defecting
+/// Untill the opossing player cooperates again. It sneaks in a defect 10% of the time.
+pub struct CheeckyTitForTat;
+impl Strategy for CheeckyTitForTat {
+    fn next_move(&self, other: &Vec<Action>, _: &Vec<Action>) -> Action {
+        let mut rng = rand::thread_rng();
+        match other.iter().last() {
+            Some(Action::Cooperate) => {
+                if rng.gen_range(0.0..1.0) < 0.1 {
+                    Action::Defect
+                } else {
+                    Action::Cooperate
+                }
+            }
+            Some(Action::Defect) => Action::Defect,
+            _ => Action::Cooperate,
+        }
+    }
+    fn name(&self) -> String {
+        "CheeckyTFT".to_string()
     }
 }
 /// Will start cooperating. If the opposing player defects N in a row it

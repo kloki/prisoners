@@ -149,6 +149,8 @@ fn main() {
         Box::new(Exploiter),
         Box::new(Naive),
         Box::new(SuspicousTitForTat),
+        Box::new(CheeckyTitForTat),
+        Box::new(GenerousTitForTat),
         Box::new(Random),
         Box::new(Grudger),
         Box::new(FlipFlop),

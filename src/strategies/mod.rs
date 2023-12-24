@@ -13,6 +13,8 @@ pub use random::{
     Random,
 };
 pub use titfortats::{
+    CheeckyTitForTat,
+    GenerousTitForTat,
     SuspicousTitForTat,
     TitForTat,
     TitForTatN,
