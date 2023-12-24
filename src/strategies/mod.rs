@@ -2,6 +2,7 @@ pub use base::{
     Exploiter,
     Naive,
 };
+pub use detective::Detective;
 pub use grudger::{
     Grudger,
     Reluctant,
@@ -16,6 +17,7 @@ pub use titfortats::{
     TitForTatN,
 };
 mod base;
+mod detective;
 mod grudger;
 mod random;
 mod titfortats;

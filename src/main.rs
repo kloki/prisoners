@@ -1,15 +1,4 @@
-use strategies::{
-    Action,
-    Exploiter,
-    FlipFlop,
-    Grudger,
-    Naive,
-    Random,
-    Reluctant,
-    Strategy,
-    TitForTat,
-    TitForTatN,
-};
+use strategies::*;
 mod strategies;
 use ::clap::Parser;
 use plotters::prelude::*;
@@ -158,6 +147,7 @@ fn main() {
         Box::new(Random),
         Box::new(Grudger),
         Box::new(Reluctant),
+        Box::new(Detective),
         Box::new(TitForTat),
         Box::new(FlipFlop),
         Box::new(TitForTatN(2)),
