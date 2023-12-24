@@ -11,14 +11,16 @@ use strategies::{
     TitForTatN,
 };
 mod strategies;
-
 use ::clap::Parser;
+use plotters::prelude::*;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Print individual runs
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
+    #[arg(short, long, default_value = "./output.png")]
+    output_file: String,
 }
 struct Runner {
     players: Vec<(Box<dyn Strategy>, usize)>,
@@ -101,7 +103,7 @@ impl Runner {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let players: Vec<Box<dyn Strategy>> = vec![
         Box::new(Naive),
@@ -127,7 +129,37 @@ fn main() {
     scores.reverse();
 
     println!("\n\nFinal scores:");
-    for score in scores {
+    for score in &scores {
         println!("{} - {}", score.0, score.1);
     }
+    let root = BitMapBackend::new(&args.output_file, (640, 480)).into_drawing_area();
+
+    root.fill(&WHITE)?;
+
+    let mut chart = ChartBuilder::on(&root)
+        .x_label_area_size(35)
+        .y_label_area_size(40)
+        .margin(5)
+        .caption("Prisoners", ("sans-serif", 50.0))
+        .build_cartesian_2d(0..scores[0].1, (0..(scores.len() - 1)).into_segmented())?;
+
+    chart
+        .configure_mesh()
+        .disable_x_mesh()
+        .bold_line_style(WHITE.mix(0.3))
+        .y_desc("Plaers")
+        .x_desc("Scores")
+        .axis_desc_style(("sans-serif", 15))
+        .draw()?;
+
+    chart.draw_series(
+        Histogram::horizontal(&chart)
+            .style(BLUE.mix(0.5).filled())
+            .data(scores.iter().rev().enumerate().map(|(i, x)| (i, x.1))),
+    )?;
+
+    // To avoid the IO failure being ignored silently, we manually call the present function
+    root.present().expect("Unable to write result to file, please make sure 'plotters-doc-data' dir exists under current dir");
+    println!("\nResult has been saved to {}", args.output_file);
+    Ok(())
 }
